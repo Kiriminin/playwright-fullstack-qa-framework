@@ -1,0 +1,32 @@
+{
+  "name": "playwright-fullstack-qa-framework",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --project=ui-chromium",
+    "test:api": "playwright test --project=api",
+    "test:integration": "playwright test --project=integration",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:headed": "playwright test --project=ui-chromium --headed",
+    "test:debug": "playwright test --project=ui-chromium --debug",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report",
+    "test:ui:all": "playwright test --project=ui-chromium --project=ui-firefox --project=ui-webkit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.5.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.24.4",
+    "zod": "^4.5.4"
+  }
+}
