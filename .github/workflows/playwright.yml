@@ -20,8 +20,12 @@ jobs:
 
     env:
       CI: true
+      SPRINT: sprint5
+      DISABLE_LOGGING: "true"
+
       UI_BASE_URL: http://127.0.0.1:4200
       API_BASE_URL: http://127.0.0.1:8091
+
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
       DB_USER: user
@@ -44,7 +48,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: Install framework dependencies
         run: npm ci
 
       - name: Run TypeScript check
@@ -53,24 +57,39 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Start application under test
+      - name: Build and start application
         working-directory: practice-software-testing
-        run: docker compose -f docker-compose.prod.yml up --pull missing -d
+        run: |
+          docker compose -f docker-compose.yml up \
+            -d \
+            --build \
+            --force-recreate
+
+      - name: Install application dependencies
+        working-directory: practice-software-testing
+        run: |
+          docker compose -f docker-compose.yml exec -T -u root laravel-api \
+            composer install \
+            --no-dev \
+            --optimize-autoloader \
+            --ignore-platform-req=ext-ffi
 
       - name: Wait for database
         working-directory: practice-software-testing
         shell: bash
         run: |
           for attempt in {1..60}; do
-            if docker compose -f docker-compose.prod.yml exec -T mariadb \
-              mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+            if docker compose -f docker-compose.yml exec -T mariadb \
+              mysqladmin ping -h localhost -uroot -proot --silent; then
+              echo "Database is ready"
               exit 0
             fi
 
+            echo "Waiting for database: attempt $attempt/60"
             sleep 5
           done
 
-          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.yml logs --no-color mariadb
           exit 1
 
       - name: Run database migrations and seed
@@ -78,24 +97,51 @@ jobs:
         shell: bash
         run: |
           for attempt in {1..20}; do
-            if docker compose -f docker-compose.prod.yml exec -T laravel-api \
+            if docker compose -f docker-compose.yml exec -T laravel-api \
               php artisan migrate:fresh --seed; then
               exit 0
             fi
 
+            echo "Migration attempt $attempt/20 failed"
             sleep 5
           done
 
+          docker compose -f docker-compose.yml logs --no-color laravel-api
           exit 1
 
-      - name: Wait for UI and API
+      - name: Wait for UI
+        working-directory: practice-software-testing
         shell: bash
         run: |
-          timeout 300 bash -c \
-            'until curl --fail --silent http://127.0.0.1:4200 > /dev/null; do sleep 5; done'
+          for attempt in {1..60}; do
+            if curl --fail --silent --output /dev/null "$UI_BASE_URL"; then
+              echo "UI is ready"
+              exit 0
+            fi
 
-          timeout 300 bash -c \
-            'until curl --fail --silent http://127.0.0.1:8091/products > /dev/null; do sleep 5; done'
+            echo "Waiting for UI: attempt $attempt/60"
+            sleep 5
+          done
+
+          docker compose -f docker-compose.yml logs --no-color angular-ui
+          exit 1
+
+      - name: Wait for API
+        working-directory: practice-software-testing
+        shell: bash
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent --output /dev/null "$API_BASE_URL/status"; then
+              echo "API is ready"
+              exit 0
+            fi
+
+            echo "Waiting for API: attempt $attempt/60"
+            sleep 5
+          done
+
+          docker compose -f docker-compose.yml logs --no-color web laravel-api
+          exit 1
 
       - name: Run Playwright tests
         run: npm test
@@ -104,8 +150,8 @@ jobs:
         if: failure()
         working-directory: practice-software-testing
         run: |
-          docker compose -f docker-compose.prod.yml ps
-          docker compose -f docker-compose.prod.yml logs --no-color --tail=200
+          docker compose -f docker-compose.yml ps
+          docker compose -f docker-compose.yml logs --no-color --tail=200
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
@@ -118,4 +164,4 @@ jobs:
       - name: Stop application
         if: always()
         working-directory: practice-software-testing
-        run: docker compose -f docker-compose.prod.yml down -v --remove-orphans
+        run: docker compose -f docker-compose.yml down -v --remove-orphans
