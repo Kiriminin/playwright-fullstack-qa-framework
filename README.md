@@ -144,6 +144,36 @@ UI sorting assertions cover base prices displayed on the current catalog page.
 * Parameterized catalog queries for database validation.
 * A `ProductsPage` Page Object for catalog interactions.
 
+## Shopping Cart Coverage
+
+### API tests
+
+- Create an empty cart.
+- Add products and verify quantities and prices.
+- Add the same product again without creating duplicate cart items.
+- Increase and decrease quantities through the update endpoint.
+- Remove individual products and empty the cart.
+- Reject zero, negative, fractional, and above-limit quantities.
+- Verify that rejected requests leave the cart unchanged.
+
+### API and database integration
+
+- Compare API responses with MariaDB records throughout the cart lifecycle.
+- Verify stored quantities after adding, updating, and removing products.
+- Use parameterized SQL queries for database checks.
+
+### UI integration
+
+- Open an API-created cart in Chromium.
+- Verify unit price, line total, and cart total for a product without discounts.
+- Change quantity through the UI and verify the database record.
+- Verify that the updated quantity survives a page reload.
+- Remove the product through the UI and verify the empty cart through API and SQL.
+
+### Test isolation
+
+Each cart test creates its own cart. A reusable Playwright fixture automatically
+deletes the cart during teardown, including when the test fails.
 
 ## Known Backend Defect
 
