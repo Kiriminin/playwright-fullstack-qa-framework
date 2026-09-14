@@ -114,6 +114,37 @@ The main integration scenario validates a complete flow:
 6. Verify successful authorization
 7. Delete the created user during test cleanup
 
+## Product Catalog Coverage
+
+### API tests
+
+* Verify price sorting in ascending and descending order.
+* Verify filtering by brand and category.
+* Verify that returned prices stay within the requested range.
+* Verify pagination metadata and ensure the first two pages contain no overlapping product IDs.
+
+### API and database integration
+
+* Use SQL results as an independent reference for brand and category filters.
+* Compare the complete product ID set across all API pages with matching non-rental products in MariaDB.
+* Detect missing, unexpected, or duplicate products.
+* Verify API totals and pagination metadata against the database result count.
+
+### UI tests
+
+* Select ascending and descending price sorting through the catalog interface.
+* Verify the selected sorting option and the order of displayed prices.
+* Run both scenarios in Chromium, Firefox, and WebKit.
+
+UI sorting assertions cover base prices displayed on the current catalog page.
+
+### Reusable components
+
+* Typed filtering, sorting, and pagination options in `ProductsClient`.
+* Parameterized catalog queries for database validation.
+* A `ProductsPage` Page Object for catalog interactions.
+
+
 ## Known Backend Defect
 
 The registration API currently accepts an invalid email format and returns `201 Created`.
