@@ -63,16 +63,14 @@ jobs:
           docker compose -f docker-compose.yml up \
             -d \
             --build \
-            --force-recreate
+            --force-recreate \
+            mariadb laravel-api web angular-ui
 
       - name: Install application dependencies
         working-directory: practice-software-testing
         run: |
           docker compose -f docker-compose.yml exec -T -u root laravel-api \
-            composer install \
-            --no-dev \
-            --optimize-autoloader \
-            --ignore-platform-req=ext-ffi
+            sh -c "composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data:www-data storage bootstrap/cache && chmod -R 777 storage bootstrap/cache"
 
       - name: Wait for database
         working-directory: practice-software-testing
@@ -152,6 +150,8 @@ jobs:
         run: |
           docker compose -f docker-compose.yml ps
           docker compose -f docker-compose.yml logs --no-color --tail=200
+          docker compose -f docker-compose.yml exec -T laravel-api \
+            sh -c "tail -n 300 storage/logs/laravel.log" || true
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
